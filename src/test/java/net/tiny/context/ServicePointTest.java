@@ -2,144 +2,80 @@ package net.tiny.context;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.net.URL;
+
 import org.junit.jupiter.api.Test;
 
 public class ServicePointTest {
 
     @Test
-    public void testIsVaildAddress() throws Exception {
-
-        assertTrue(ServicePoint.isValid("192.168.100.101"));
-        assertTrue(ServicePoint.isValid("192.168.10.1"));
-        assertTrue(ServicePoint.isValid("128.50.10.11"));
-        assertTrue(ServicePoint.isValid("192.168.10.1:1099"));
-        assertTrue(ServicePoint.isValid("1099"));
-        assertTrue(ServicePoint.isValid("localhost"));
-        assertTrue(ServicePoint.isValid("PC110084"));
-        assertTrue(ServicePoint.isValid("PC110084_12:1099"));
-        assertTrue(ServicePoint.isValid("PC110084-A1:1099"));
-        assertTrue(ServicePoint.isValid("localhost:1099"));
-
-        assertFalse(ServicePoint.isValid("192.168.10.1234"));
-        assertFalse(ServicePoint.isValid("1921.168.10.123"));
-        assertFalse(ServicePoint.isValid("192.168.10.12.34"));
-        assertFalse(ServicePoint.isValid("192.168.10"));
-        assertFalse(ServicePoint.isValid("192.168.al.1"));
-        assertFalse(ServicePoint.isValid("192.168.10.1:1a99"));
-        assertFalse(ServicePoint.isValid("192.168.10.1:110084"));
-        assertFalse(ServicePoint.isValid("110084"));
-        assertFalse(ServicePoint.isValid("1a99"));
-        assertFalse(ServicePoint.isValid(":1099"));
-        assertFalse(ServicePoint.isValid("PC110084#12:1099"));
+    public void testIsValidEndpoint() throws Exception {
+        assertTrue(ServicePoint.isValid("http://192.168.100.101:8080/endpoint"));
+        assertTrue(ServicePoint.isValid("rmi://192.168.100.101:1099/endpoint"));
+        assertTrue(ServicePoint.isValid("https://localhost/endpoint"));
+        assertTrue(ServicePoint.isValid("http://api.bus.net:8080/endpoint"));
+        assertTrue(ServicePoint.isValid("iiop://localhost/endpoint"));
+        assertFalse(ServicePoint.isValid("ftp://localhost/endpoint"));
     }
 
-    public void testParseAddress() throws Exception {
+    @Test
+    public void testParseEndpoint() throws Exception {
+        String[] endpoint = ServicePoint.parseEndpoint("http://192.168.100.101:8080/endpoint");
+        assertEquals("http", endpoint[0]);
+        assertNull(endpoint[1]);
+        assertNull(endpoint[2]);
+        assertEquals("192.168.100.101", endpoint[3]);
+        assertEquals("8080", endpoint[4]);
+        assertEquals("endpoint", endpoint[5]);
 
-        String[] address = ServicePoint.parseAddress("192.168.100.101", 1099);
-        assertEquals("192.168.100.101", address[0]);
-        assertEquals("1099", address[1]);
+        endpoint = ServicePoint.parseEndpoint("https://api.bus.net/api/do?t=abc&c=ch1");
+        assertEquals("https", endpoint[0]);
+        assertNull(endpoint[1]);
+        assertNull(endpoint[2]);
+        assertEquals("api.bus.net", endpoint[3]);
+        assertEquals("443", endpoint[4]);
+        assertEquals("api/do?t=abc&c=ch1", endpoint[5]);
+    }
 
-        address = ServicePoint.parseAddress("192.168.10.1:1100", 1099);
-        assertEquals("192.168.10.1", address[0]);
-        assertEquals("1100", address[1]);
+    @Test
+    public void testParseEndpointWithCredentials() throws Exception {
+        String[] endpoint = ServicePoint.parseEndpoint("http://user:password@192.168.100.101:8080/endpoint");
+        assertEquals("http", endpoint[0]);
+        assertEquals("user", endpoint[1]);
+        assertEquals("password", endpoint[2]);
+        assertEquals("192.168.100.101", endpoint[3]);
+        assertEquals("8080", endpoint[4]);
+        assertEquals("endpoint", endpoint[5]);
 
-        address = ServicePoint.parseAddress("7703", 1099);
-        assertEquals("localhost", address[0]);
-        assertEquals("7703", address[1]);
+        endpoint = ServicePoint.parseEndpoint("https://user:password@api.bus.net/api/do?t=abc&c=ch1");
+        assertEquals("https", endpoint[0]);
+        assertEquals("user", endpoint[1]);
+        assertEquals("password", endpoint[2]);
+        assertEquals("api.bus.net", endpoint[3]);
+        assertEquals("443", endpoint[4]);
+        assertEquals("api/do?t=abc&c=ch1", endpoint[5]);
 
-        address = ServicePoint.parseAddress("PC110084", 1099);
-        assertEquals("PC110084", address[0]);
-        assertEquals("1099", address[1]);
+        endpoint = ServicePoint.parseEndpoint("https://unknow@api.bus.net/api/do?t=abc&c=ch1");
+        assertEquals("https", endpoint[0]);
+        assertNull(endpoint[1]);
+        assertNull(endpoint[2]);
+        assertEquals("api.bus.net", endpoint[3]);
+        assertEquals("443", endpoint[4]);
+        assertEquals("api/do?t=abc&c=ch1", endpoint[5]);
+    }
 
-        address = ServicePoint.parseAddress("PC110084-A1:7703", 1099);
-        assertEquals("PC110084-A1", address[0]);
-        assertEquals("7703", address[1]);
+    @Test
+    public void testParseEndpointWithPattern() throws Exception {
+        String[] endpoint = ServicePoint.parseEndpoint("https://api.bus.net/api/do?t={token}&c={ch}");
+        assertEquals("https", endpoint[0]);
+        assertEquals("api.bus.net", endpoint[3]);
+        assertEquals("443", endpoint[4]);
+        assertEquals("api/do?t={token}&c={ch}", endpoint[5]);
+
     }
 
 
     @Test
-    public void testGetSet() throws Exception {
-
-        ServicePoint sc = new ServicePoint();
-        assertEquals(ServicePoint.DEFAULT_NAME, sc.getName());
-        assertEquals("localhost", sc.getHost());
-        assertEquals(-1, sc.getPort());
-
-        GroupContext<ServicePoint> gc = new GroupContext<ServicePoint>(sc);
-
-        ServicePoint curr = gc.getCurrent();
-
-        ServicePoint frist = gc.getFrist();
-        assertEquals(0, sc.compareTo(frist));
-        assertEquals(sc, frist);
-        assertEquals(curr, frist);
-
-        gc.append(new ServicePoint(1098));
-        gc.append(new ServicePoint("192.168.100.10"));
-        gc.append(new ServicePoint("192.168.100.10", 1100));
-        gc.append(new ServicePoint("192.168.100.11"));
-        gc.append(new ServicePoint("192.168.110.10"));
-        gc.append(new ServicePoint("128.10.100.10"));
-        gc.append(new ServicePoint("128.10.100.10", 1100));
-        gc.append(new ServicePoint("128.50.100.10"));
-        gc.append(new ServicePoint("128.30.100.10"));
-        gc.append(new ServicePoint("128.30.100.10", 1099));
-        gc.append(new ServicePoint("128.60.100.10"));
-
-        System.out.println(gc.toString());
-        assertEquals(12, gc.size());
-
-        ServicePoint[] array = gc.toArray(new ServicePoint[gc.size()]);
-        assertEquals(12, array.length);
-
-        int idx = gc.indexOf(sc);
-        assertEquals(0, idx);
-
-        ServicePoint last = gc.getLast();
-        assertEquals("192.168.110.10", last.getHost());
-        assertEquals(-1, last.getPort());
-
-        ServicePoint next = gc.getNext();
-        assertEquals("localhost", next.getHost());
-        assertEquals(1098, next.getPort());
-
-        next = gc.getNext(next);
-
-        assertEquals("128.10.100.10", next.getHost());
-        assertEquals(-1, next.getPort());
-
-        gc = new GroupContext<ServicePoint>(new ServicePoint("192.168.100.10", 1100));
-        gc.append(new ServicePoint());
-
-        System.out.println(gc.toString());
-        assertEquals(2, gc.size());
-
-        gc.remove(new ServicePoint("192.168.100.10", 1100));
-        assertEquals(1, gc.size());
-        curr = gc.getCurrent();
-        assertEquals("localhost", sc.getHost());
-        assertEquals(-1, sc.getPort());
-
-        gc.remove(new ServicePoint());
-        assertEquals(0, gc.size());
-
-        // current is null
-        gc.remove(new ServicePoint("192.168.100.10", 1100));
-        assertNull(gc.getFrist());
-        assertNull(gc.getLast());
-        assertNull(gc.getNext());
-
-        assertNull(gc.getNext(new ServicePoint()));
-
-        array = gc.toArray(new ServicePoint[gc.size()]);
-        assertEquals(0, array.length);
-
-        sc = new ServicePoint();
-        sc.setAddress("192.168.100.10:1100");
-        assertEquals("192.168.100.10", sc.getHost());
-        assertEquals(1100, sc.getPort());
-    }
-
     public void testCompareHost() throws Exception {
 
         ServicePoint sc = new ServicePoint();
@@ -157,5 +93,20 @@ public class ServicePointTest {
         ret = sc.compareHost("128.10.100.10", "128.30.100.10", "128.50.100.10");
         assertEquals(-2, ret);
 
+    }
+
+    @Test
+    public void testEndpoint() throws Exception {
+        URL url = new URL("http://192.168.1.200:8080/v1/api/msg/{ch}?t={token}");
+        ServicePoint point = new ServicePoint(url);
+        assertEquals("192.168.1.200", point.getHost());
+        assertEquals(8080, point.getPort());
+        assertEquals("/v1/api/msg/{ch}?t={token}", point.getPath());
+
+        url = new URL("http://localhost/v1/api/msg/{ch}/{id}");
+        point = new ServicePoint(url);
+        assertEquals("localhost", point.getHost());
+        assertEquals(80, point.getPort());
+        assertEquals("/v1/api/msg/{ch}/{id}", point.getPath());
     }
 }

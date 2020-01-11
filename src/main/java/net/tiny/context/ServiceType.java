@@ -5,6 +5,6 @@ public enum ServiceType {
     RMI,
     IIOP,
     WS,
-    HTTP,
+    REST,
     JMX
 }

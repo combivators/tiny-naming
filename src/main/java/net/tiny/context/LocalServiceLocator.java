@@ -18,7 +18,7 @@ public class LocalServiceLocator implements ServiceFeature {
     }
 
     @Override
-    public <T> T lookup(ServicePoint point, Class<T> classType) {
-        return serviceContext.lookup(point.getObjectName(), classType);
+    public <T> T lookup(String endpoint, Class<T> classType) {
+        return serviceContext.lookup(endpoint, classType);
     }
 }

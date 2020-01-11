@@ -1,28 +1,24 @@
 package net.tiny.context;
 
 import java.net.InetAddress;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.regex.Pattern;
 
-public class ServicePoint extends ObjectKeyValue<String, String> implements Comparable<ServicePoint> {
-    private static final long serialVersionUID = 1L;
+public class ServicePoint implements Comparable<ServicePoint> {
 
     static final String DEFAULT_NAME = "Endpoint";
     static final String DEFAULT_HOST = "localhost";
-    static final int DEFAULT_PORT = -1;
     static final int DEFAULT_RMI_PORT = 1099;
     static final int DEFAULT_JMX_PORT = 1099;
     static final int DEFAULT_IIOP_PORT = 2809;
     static final int DEFAULT_HTTP_PORT = 80;
+    static final int DEFAULT_HTTPS_PORT = 443;
     static final int DEFAULT_WS_PORT = 8080;
+    static final int DEFAULT_WS_TLS_PORT = 8443;
+    static final int DEFAULT_PORT = DEFAULT_HTTP_PORT;
 
     static final ServiceType DEFAULT_TYPE = ServiceType.LOCAL;
-
-    static final String KEY_NAME = "name";
-    static final String KEY_HOST = "host";
-    static final String KEY_PORT = "port";
-    static final String KEY_OBJECTNAME = "objectName";
-    static final String KEY_TYPE = "type";
 
     public static final String LOCALHOST_ADDRESS = getLocalHostAddress();
 
@@ -34,211 +30,240 @@ public class ServicePoint extends ObjectKeyValue<String, String> implements Comp
         }
     }
 
-    static final String[] REGEXS = new String[] {
-            // ip
-            "^[0-9]{1,3}[.][0-9]{1,3}[.][0-9]{1,3}[.][0-9]{1,3}$",
-            // ip:port
-            "^[0-9]{1,3}[.][0-9]{1,3}[.][0-9]{1,3}[.][0-9]{1,3}[:][0-9]{1,5}$",
-            // port
-            "^[0-9]{1,5}$",
-            // hostname
-            "^[a-zA-Z][a-z0-9A-Z_-]+$",
-            // hostname:port
-            "^[a-zA-Z][a-z0-9A-Z_-]+[:][0-9]{1,5}$" };
+    static final String REGEXS = "^(https?|rmi|iiop)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|?]";
 
-    private static int indexOfRegex(String address) {
-        for (int i = 0; i < REGEXS.length; i++) {
-            if (Pattern.matches(REGEXS[i], address)) {
-                return i;
+    static boolean isValid(String endpoint) {
+        return Pattern.matches(REGEXS, endpoint);
+    }
+
+    /**
+     * Parse a formatted end-point. 'http://user:password@abc.xyz:8080/api/q?s=10'
+     *
+     * @param endpoint
+     * @return [0]: protocol [1]: account [2]: password [3]: host [4]: port  [5]: path
+     */
+    public static String[] parseEndpoint(String endpoint) {
+        String[] result = new String[6];
+        int protocol = endpoint.indexOf("://");
+        if (protocol == -1) {
+            // Local endpoint
+            return new String[] {endpoint};
+        }
+        result[0] = endpoint.substring(0, protocol);
+        int defaultPort = DEFAULT_PORT;
+        switch (result[0]) {
+        case "rmi":
+            defaultPort = DEFAULT_RMI_PORT;
+            break;
+        case "iiop":
+            defaultPort = DEFAULT_IIOP_PORT;
+            break;
+        case "https":
+            defaultPort = DEFAULT_HTTPS_PORT;
+            break;
+        case "http":
+            defaultPort = DEFAULT_PORT;
+            break;
+        default:
+            defaultPort = -1;
+            break;
+        }
+
+        int pos = protocol+3;
+        int cred = endpoint.indexOf("@", protocol + 3);
+
+        int port;
+        if (cred != -1) {
+            pos = endpoint.indexOf(":", protocol + 3);
+            if (pos != -1) {
+                result[1] =	endpoint.substring(protocol+3, pos); // account
+                result[2] =	endpoint.substring(pos+1, cred);       // password
             }
-        }
-        return -1;
-    }
-
-    static boolean isValid(String address) {
-        if (indexOfRegex(address) != -1) {
-            return true;
-        }
-        return false;
-    }
-
-    static String parseHost(String address) {
-        int idx = indexOfRegex(address);
-        if (idx == -1) {
-            throw new IllegalArgumentException("'" + address + "'");
-        }
-        String host = "localhost";
-        switch (idx) {
-        case 0:
-        case 3:
-            host = address;
-            break;
-        case 1:
-        case 4:
-            int pos = address.indexOf(":");
-            host = address.substring(0, pos);
-            break;
-        }
-        return host;
-    }
-
-    static int parsePort(String address, int defaultPort) {
-        int idx = indexOfRegex(address);
-        if (idx == -1) {
-            throw new IllegalArgumentException("'" + address + "'");
+            pos = cred + 1;
+            port = endpoint.indexOf(":", pos);
+        } else {
+            port = endpoint.indexOf(":", pos);
         }
 
-        int port = defaultPort;
-        switch (idx) {
-        case 1:
-        case 4:
-            int pos = address.indexOf(":");
-            port = Integer.valueOf(address.substring(pos + 1)).intValue();
-            break;
-        case 2:
-            port = Integer.valueOf(address);
-            break;
+        int path = endpoint.indexOf("/", pos);
+        if (port > 0) {
+            result[3] =	endpoint.substring(pos, port); // host name or address
+            result[4] =	endpoint.substring(port+1, path);     // port
+        } else {
+            result[3] =	endpoint.substring(pos, path); // host name or address
+            result[4] =	Integer.toString(defaultPort);        // port
         }
-        return port;
-    }
-
-    static String[] parseAddress(String address, int defaultPort) {
-        int idx = indexOfRegex(address);
-        if (idx == -1) {
-            throw new IllegalArgumentException("'" + address + "'");
-        }
-        String[] result = { "localhost", Integer.toString(defaultPort) };
-        switch (idx) {
-        case 0:
-        case 3:
-            result[0] = address;
-            break;
-        case 2:
-            result[1] = address;
-            break;
-        case 1:
-        case 4:
-            int pos = address.indexOf(":");
-            result[0] = address.substring(0, pos);
-            result[1] = address.substring(pos + 1);
-            break;
-        }
+        result[5] =	endpoint.substring(path+1);  // path
         return result;
     }
 
-
-    public ServicePoint(final String host, final int port, final String name, final ServiceType type) {
-        setValue(KEY_NAME, name);
-        setValue(KEY_HOST, host);
-        setValue(KEY_PORT, Integer.toString(port));
-        setValue(KEY_TYPE, type.name());
+    public static ServicePoint valueOf(String endpoint) {
+        final String[] points = parseEndpoint(endpoint);
+        ServiceType serviceType = ServiceType.REST;
+        switch (points[0]) {
+        case "rmi":
+            serviceType = ServiceType.RMI;
+            break;
+        case "iiop":
+            serviceType = ServiceType.IIOP;
+            break;
+        case "https":
+        case "http":
+            serviceType = ServiceType.REST;
+            break;
+        default:
+            serviceType = ServiceType.LOCAL;
+            break;
+        }
+        if (points.length == 6) {
+            return new ServicePoint(points[3],
+                Integer.parseInt(points[4]),
+                points[5],
+                serviceType,
+                points[0].endsWith("s"),
+                points[5]);
+        } else {
+            // Local service
+            return new ServicePoint(points[0]);
+        }
     }
 
-    public ServicePoint(final String host, final int port, final ServiceType type) {
-        this(host, port, DEFAULT_NAME, type);
+    private String name;
+    private String host;
+    private String path;
+    private String credentials;
+    private String token;
+    private int port;
+    private ServiceType type;
+    private boolean secret = false;
+
+    public ServicePoint(final String host, final int port, final String name, final ServiceType type, final boolean secret, final String path) {
+        this.host = host;
+        this.port = port;
+        this.name = name;
+        this.type = type;
+        this.secret = secret;
+        this.path = path;
     }
 
-    public ServicePoint(final String host, final int port) {
-        this(host, port, DEFAULT_NAME, DEFAULT_TYPE);
+    public ServicePoint(URL endpoint) {
+        this.host = endpoint.getHost();
+        this.port = endpoint.getPort();
+        if (-1 == this.port) {
+            this.port = endpoint.getDefaultPort();
+        }
+        this.path = endpoint.getPath();
+        final String query = endpoint.getQuery();
+        if (query != null) {
+            this.path = this.path.concat("?").concat(query);
+        }
+        this.name = DEFAULT_NAME;
+        this.type = ServiceType.REST;
+        this.secret = endpoint.getProtocol().endsWith("s");
     }
 
-    public ServicePoint(final int port, final ServiceType type) {
-        this(DEFAULT_HOST, port, DEFAULT_NAME, type);
-    }
-
-    public ServicePoint(final int port) {
-        this(DEFAULT_HOST, port, DEFAULT_NAME, DEFAULT_TYPE);
-    }
-
-    public ServicePoint(final String host, final ServiceType type) {
-        this(host, DEFAULT_PORT, DEFAULT_NAME, type);
-    }
-
-    public ServicePoint(final String host) {
-        this(host, DEFAULT_PORT, DEFAULT_NAME, DEFAULT_TYPE);
-    }
-
-    public ServicePoint(final ServiceType type) {
-        this(DEFAULT_HOST, DEFAULT_PORT, DEFAULT_NAME, type);
+    public ServicePoint(String name) {
+        // Local service
+        this(DEFAULT_HOST, -1, name, DEFAULT_TYPE, false, "");
     }
 
     public ServicePoint() {
-        this(DEFAULT_HOST, DEFAULT_PORT, DEFAULT_NAME, DEFAULT_TYPE);
+        // Local end point
+        this(DEFAULT_HOST, DEFAULT_PORT, DEFAULT_NAME, DEFAULT_TYPE, false, "/");
     }
 
-    @Override
-    protected ObjectContext<String, String> createObjectContext() {
-        return new ServicePoint();
-    }
 
     public final String getName() {
-        return getValue(KEY_NAME);
+        return name;
     }
 
     public final String getHost() {
-        return getValue(KEY_HOST);
+        return host;
+    }
+
+    public final String getPath() {
+        return path;
     }
 
     public final int getPort() {
-        return Integer.parseInt(getValue(KEY_PORT));
+        return port;
     }
 
-    public String getObjectName() {
-        return getValue(KEY_OBJECTNAME);
+    public final boolean isSecret() {
+        return secret;
     }
 
-    public void setObjectName(String name) {
-        setValue(KEY_OBJECTNAME, name);
+    public final String getToken() {
+        return token;
+    }
+
+    public final boolean hasCredentials() {
+        return credentials != null;
+    }
+
+    public final String[] getCredentials() {
+        if (credentials != null) {
+            return credentials.split(":");
+        } else {
+            return null;
+        }
+    }
+
+    public final void setCredentials(String sec) {
+        credentials = sec;
     }
 
     public ServiceType getServiceType() {
-        return ServiceType.valueOf(getValue(KEY_TYPE));
+        return type;
     }
 
     public void setServiceType(ServiceType type) {
-        setValue(KEY_TYPE, type.name());
-        boolean valid = isValidPort();
+        boolean valid = (port != -1);
+        this.type = type;
         switch (type) {
         case LOCAL:
-            setValue(KEY_PORT, "-1");
+            port = -1;
             break;
         case RMI:
-            if (!valid)
-                setValue(KEY_PORT, Integer.toString(DEFAULT_RMI_PORT));
+            if (!valid) port = DEFAULT_RMI_PORT;
             break;
         case IIOP:
-            if (!valid)
-                setValue(KEY_PORT, Integer.toString(DEFAULT_IIOP_PORT));
+            if (!valid) port = DEFAULT_IIOP_PORT;
             break;
         case JMX:
-            if (!valid)
-                setValue(KEY_PORT, Integer.toString(DEFAULT_JMX_PORT));
+            if (!valid) port = DEFAULT_JMX_PORT;
             break;
-        case HTTP:
-            if (!valid)
-                setValue(KEY_PORT, Integer.toString(DEFAULT_HTTP_PORT));
+        case REST:
+            if (!valid) {
+                if (secret) {
+                    port = DEFAULT_HTTPS_PORT;
+                } else {
+                    port = DEFAULT_HTTP_PORT;
+                }
+            }
             break;
         case WS:
             if (!valid)
-                setValue(KEY_PORT, Integer.toString(DEFAULT_WS_PORT));
+            if (!valid) {
+                if (secret) {
+                    port = DEFAULT_WS_TLS_PORT;
+                } else {
+                    port = DEFAULT_WS_PORT;
+                }
+            }
             break;
         default:
             break;
         }
     }
 
-    boolean isValidPort() {
-        return (-1 != getPort());
-    }
 
-    public String getAddress() {
-        return getHost() + ":" + getPort();
-    }
-
-    public void setAddress(String address) {
-        String[] array = parseAddress(address, DEFAULT_PORT);
-        setValue(KEY_HOST, array[0]);
-        setValue(KEY_PORT, array[1]);
+    @Override
+    public boolean equals(Object target) {
+        if (target instanceof ServicePoint) {
+            return compareTo((ServicePoint)target) == 0;
+        }
+        return false;
     }
 
     @Override
@@ -248,15 +273,14 @@ public class ServicePoint extends ObjectKeyValue<String, String> implements Comp
             return cp;
         }
         cp = getPort() - target.getPort();
-        if (cp != 0) {
-            return cp;
+        if (cp > 0) {
+            return 1;
+        } else if (cp < 0) {
+            return -1;
         }
         cp = getName().compareTo(target.getName());
         if (cp != 0) {
             return cp;
-        }
-        if (getObjectName() != null) {
-            cp = getObjectName().compareTo(target.getObjectName());
         }
         if (getServiceType() != null) {
             cp = getServiceType().compareTo(target.getServiceType());
@@ -294,4 +318,10 @@ public class ServicePoint extends ObjectKeyValue<String, String> implements Comp
         }
         return Math.abs(dis);
     }
+
+    @Override
+    public String toString() {
+        return String.format("%s(%s) %s:%d '%s'", name, type.name(), host, port, path);
+    }
+
 }

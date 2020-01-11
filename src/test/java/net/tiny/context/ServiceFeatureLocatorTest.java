@@ -13,7 +13,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import net.tiny.service.ServiceLocator;
-import net.tiny.service.ServiceLocator.ServiceMonitor;
 
 public class ServiceFeatureLocatorTest {
 
@@ -35,7 +34,7 @@ public class ServiceFeatureLocatorTest {
 
         final Map<String, Object> collection = new HashMap<>();
         collection.put("local", new LocalServiceLocator(serviceContext));
-        collection.put("iiop", new IIOPServiceLocator());
+        //collection.put("iiop", new IIOPServiceLocator());
         collection.put("rmi", new RMIServiceLocator());
         final DummyServiceBean dsb = new DummyServiceBean();
         collection.put("DummyService", dsb);
@@ -73,18 +72,16 @@ public class ServiceFeatureLocatorTest {
 
         ServiceFeatureLocator locator = new ServiceFeatureLocator();
         locator.setServiceContext(serviceContext);
-        locator.setFeatures(Arrays.asList("local", "iiop", "rmi"));
+        locator.setFeatures(Arrays.asList("local", "rmi"));
 
         ServiceFeature feature = locator.feature(ServiceType.LOCAL);
         assertNotNull(feature);
         assertTrue(feature instanceof LocalServiceLocator);
-        assertTrue(locator.feature(ServiceType.IIOP) instanceof IIOPServiceLocator);
+        //assertTrue(locator.feature(ServiceType.IIOP) instanceof IIOPServiceLocator);
         assertTrue(locator.feature(ServiceType.RMI) instanceof RMIServiceLocator);
 
         //Local
-        ServicePoint sp = new ServicePoint();
-        sp.setObjectName("DummyService");
-        ds = locator.lookup(sp, DummyService.class);
+        ds = locator.lookup("DummyService", DummyService.class);
         assertNotNull(ds);
         assertEquals(dsb.hashCode(), ds.hashCode());
     }

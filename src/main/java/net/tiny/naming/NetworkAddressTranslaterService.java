@@ -1,5 +1,6 @@
 package net.tiny.naming;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.MalformedURLException;
@@ -45,7 +46,7 @@ public class NetworkAddressTranslaterService implements NetworkAddressTranslater
             List<InterfaceAddress> ifs = DEFAULT_NIC.getInterfaceAddresses();
             InterfaceAddress ifa = ifs.get(0);
             DEFAULT_PREFIX = ifa.getNetworkPrefixLength();
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             throw new RuntimeException(ex.getMessage(), ex);
         }
     }
@@ -292,16 +293,18 @@ public class NetworkAddressTranslaterService implements NetworkAddressTranslater
 
         try {
             NetworkInterface nic = null;
-            InetAddress localhost = InetAddress.getLocalHost();
+            //InetAddress localhost = InetAddress.getLocalHost();
             Enumeration<NetworkInterface> nis = NetworkInterface.getNetworkInterfaces();
             while(nis.hasMoreElements()) {
                 NetworkInterface ni = nis.nextElement();
                 if(ni.isLoopback() || ni.isVirtual() || !ni.isUp() || ni.isPointToPoint() || !ni.supportsMulticast()) {
                     continue;
                 }
+                //System.out.println(String.format("%s Loopback:%s, Virtual:%s, Up;%s, P2P:%s, Multicast:%s",
+                //		ni.getName(), ni.isLoopback(), ni.isVirtual(), ni.isUp(), ni.isPointToPoint(), ni.supportsMulticast()));
                 Enumeration<InetAddress> addrs = ni.getInetAddresses();
                 while (addrs.hasMoreElements()) {
-                    if (localhost.equals(addrs.nextElement())) {
+                    if (!"127.0.0.1".equals(addrs.nextElement().getHostAddress())) {
                         nic = ni;
                         break;
                     }
@@ -311,6 +314,7 @@ public class NetworkAddressTranslaterService implements NetworkAddressTranslater
             }
             return nic;
         } catch (Exception ex) {
+        	ex.printStackTrace();
             throw new RuntimeException(ex.getMessage(), ex);
         }
     }

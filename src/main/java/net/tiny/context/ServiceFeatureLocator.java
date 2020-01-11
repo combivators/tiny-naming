@@ -29,10 +29,11 @@ public class ServiceFeatureLocator {
         this.features = list;
     }
 
-    public <T> T lookup(ServicePoint point, Class<T> classType) {
+    public <T> T lookup(String endpoint, Class<T> classType) {
+        ServicePoint point = ServicePoint.valueOf(endpoint);
         ServiceFeature feature = feature(point.getServiceType());
         if (null != feature) {
-            return feature.lookup(point, classType);
+            return feature.lookup(endpoint, classType);
         } else {
             return null;
         }

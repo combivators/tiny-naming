@@ -1,0 +1,96 @@
+logging:
+  level:
+    javax.xml.bind: WARNING
+    com.sun:     WARNING
+    sun.net:     WARNING
+    org.apache:  OFF
+    net.tiny:    FINE
+#
+main: ${launcher}
+#shutdown = ${hook}
+daemon: true
+executor: ${pool}
+callback: ${rest.service}
+pool:
+  class:   net.tiny.service.PausableThreadPoolExecutor
+  size:    5
+  max:     10
+  timeout: 3
+launcher:
+  class: net.tiny.ws.Launcher
+  builder:
+    port: 8080
+    backlog: 10
+    stopTimeout: 1
+    executor: ${pool}
+    handlers: ${handler.sys}, ${handler.rest}
+#    ssl:
+#      file:       ks
+#      password:   12345
+#      clientAuth: false
+
+handler:
+#
+  sys:
+    class:   net.tiny.ws.ControllableHandler
+    path:    /sys
+    auth:    ${auth.simple}
+    filters: ${filter.logger}
+#
+  rest:
+    class:       net.tiny.ws.rs.RestfulHttpHandler
+    path:        /v1/api
+    filters:     ${filter.logger}, ${filter.snap}
+    application: ${rest.application}
+#    listener:    ${rest.monitor}
+
+filter:
+   logger:
+     class: net.tiny.ws.AccessLogger
+     out:   stdout
+   snap:
+     class: net.tiny.ws.SnapFilter
+#
+rest:
+  application:
+    class:   net.tiny.ws.rs.RestApplication
+    pattern: net.tiny.message.agent.*, net.tiny.message.test.*, !java.*, !com.sun.*, !org.apache.*
+#   loggingLevel: info
+  service:
+    class:   net.tiny.ws.rs.RestServiceLocator
+#   listener: ${rest.monitor}
+#  monitor:
+#    class: net.tiny.ws.rs.RestServiceLocator$RestServiceMonitor
+#
+auth:
+#
+  simple:
+    class:    net.tiny.ws.auth.SimpleAuthenticator
+    token:    DES:CAhQn4bV:HIOsSQIg
+    encode:   true
+    username: paas
+# 'password'
+    password: Piz5wX49L4MS4SYsGwEMNw==
+
+vcap:
+  alias: vcap.services.ups-tiny.credentials
+#datasource:
+#  global:
+#    username: ${${vcap.alias}.cf.username}
+#    password: ${${vcap.alias}.cf.password}
+#
+bus:
+  class:     net.tiny.message.agent.MessageBus
+  consumers: ${consumer.one}, ${consumer.local}
+  token:     tsObwsH4IfoxyDWj
+#
+consumer:
+  one:
+    class: net.tiny.message.agent.ConsumerContext
+    channels: ch1
+    endpoint: http://localhost:8080/v1/api/tc1/do
+#
+  local:
+    class: net.tiny.message.agent.ConsumerContext
+    channels: [ch1, ch2]
+    endpoint: net.tiny.message.test.LocalTestConsumer

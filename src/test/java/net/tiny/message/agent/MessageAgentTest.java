@@ -29,7 +29,7 @@ public class MessageAgentTest {
         ApplicationContext context = new Main(args).run(false);
         assertEquals("test", context.getProfile());
 
-        ServiceContext locator = context.getBean("rest.service", ServiceContext.class);
+        ServiceContext locator = context.getBean("service.context", ServiceContext.class);
         assertNotNull(locator);
         Launcher launcher = context.getBootBean(Launcher.class);
         launcher = locator.lookup("launcher", Launcher.class);
@@ -50,7 +50,7 @@ public class MessageAgentTest {
                 .build();
         RestClient.Response response = client.doGet(new URL("http://localhost:8080/sys/status"));
         assertEquals(response.getStatus(), HttpURLConnection.HTTP_OK);
-        assertEquals("running", response.getEntity());
+        assertTrue(response.getEntity().endsWith("running..."));
         response.close();
 
         response = client.doGet(new URL("http://localhost:8080/sys/stop"));

@@ -79,7 +79,7 @@ public class GroupContextTest {
         assertEquals(1, idx);
 
         ServicePoint last = gc.getLast();
-        assertEquals("172.30.110.10", last.getHost());
+        assertEquals("128.60.100.10", last.getHost());
         assertEquals(80, last.getPort());
 
         frist = gc.getFrist();
@@ -91,15 +91,15 @@ public class GroupContextTest {
         assertEquals(80, curr.getPort());
 
         ServicePoint next = gc.getNext();
-        assertEquals("128.10.100.10", next.getHost());
+        assertEquals("172.30.100.10", next.getHost());
         assertEquals(80, next.getPort());
         next = gc.getNext();
-        assertEquals("128.10.100.10", next.getHost());
+        assertEquals("172.30.100.10", next.getHost());
         assertEquals(80, next.getPort());
 
         next = gc.getNext(next);
 
-        assertEquals("128.10.100.10", next.getHost());
+        assertEquals("172.30.100.10", next.getHost());
         assertEquals(1100, next.getPort());
 
         gc = new GroupContext<ServicePoint>(ServicePoint.valueOf("http://172.30.100.10:1100/v1/api/{token}") );

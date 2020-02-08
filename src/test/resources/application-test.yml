@@ -1,4 +1,6 @@
 logging:
+  handler:
+    output: none
   level:
     javax.xml.bind: WARNING
     com.sun:     WARNING
@@ -10,7 +12,7 @@ main: ${launcher}
 #shutdown = ${hook}
 daemon: true
 executor: ${pool}
-callback: ${rest.service}
+callback: ${service.context}
 pool:
   class:   net.tiny.service.PausableThreadPoolExecutor
   size:    5
@@ -36,12 +38,13 @@ handler:
     path:    /sys
     auth:    ${auth.simple}
     filters: ${filter.logger}
+    context: ${service.context}
 #
   rest:
-    class:       net.tiny.ws.rs.RestfulHttpHandler
-    path:        /v1/api
-    filters:     ${filter.logger}, ${filter.snap}
-    application: ${rest.application}
+    class:   net.tiny.ws.rs.RestfulHttpHandler
+    path:    /v1/api
+    filters: ${filter.logger}, ${filter.snap}
+    context: ${service.context}
 #    listener:    ${rest.monitor}
 
 filter:
@@ -55,13 +58,14 @@ rest:
   application:
     class:   net.tiny.ws.rs.RestApplication
     pattern: net.tiny.message.agent.*, net.tiny.message.test.*, !java.*, !com.sun.*, !org.apache.*
-#   loggingLevel: info
-  service:
-    class:   net.tiny.ws.rs.RestServiceLocator
+    scan:    .*/classes/, .*/test-classes/, .*/tiny-.*[.]jar, !.*/tiny-dic.*[.]jar
 #   listener: ${rest.monitor}
 #  monitor:
 #    class: net.tiny.ws.rs.RestServiceLocator$RestServiceMonitor
 #
+service:
+  context:
+    class: net.tiny.ws.rs.RestServiceLocator
 auth:
 #
   simple:

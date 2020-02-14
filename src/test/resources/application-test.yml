@@ -38,13 +38,11 @@ handler:
     path:    /sys
     auth:    ${auth.simple}
     filters: ${filter.logger}
-    context: ${service.context}
 #
   rest:
     class:   net.tiny.ws.rs.RestfulHttpHandler
-    path:    /v1/api
+    path:    /api
     filters: ${filter.logger}, ${filter.snap}
-    context: ${service.context}
 #    listener:    ${rest.monitor}
 
 filter:
@@ -92,7 +90,7 @@ consumer:
   one:
     class: net.tiny.message.agent.ConsumerContext
     channels: ch1
-    endpoint: http://localhost:8080/v1/api/tc1/do
+    endpoint: http://localhost:8080/api/v1/tc1/do
 #
   local:
     class: net.tiny.message.agent.ConsumerContext

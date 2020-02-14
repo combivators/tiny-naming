@@ -1,9 +1,12 @@
 package net.tiny.context;
 
+import javax.annotation.Resource;
+
 import net.tiny.service.ServiceContext;
 
 public class LocalServiceLocator implements ServiceFeature {
 
+    @Resource
     private ServiceContext serviceContext;
 
     public LocalServiceLocator() {}

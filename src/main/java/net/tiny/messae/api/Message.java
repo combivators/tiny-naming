@@ -31,5 +31,4 @@ public class Message {
     public void setSource(String source) {
         this.source = source;
     }
-
 }

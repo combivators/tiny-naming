@@ -1,11 +1,12 @@
 package net.tiny.message.agent;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ConsumerContext {
 
     private String endpoint;
-    private List<String> channels;
+    private List<String> channels = new ArrayList<>();
     private transient ObserverContext observer;
 
     public List<String> getChannels() {

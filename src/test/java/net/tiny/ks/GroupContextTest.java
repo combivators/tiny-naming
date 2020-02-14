@@ -2,6 +2,7 @@ package net.tiny.ks;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import net.tiny.context.ServicePoint;
@@ -39,7 +40,8 @@ public class GroupContextTest {
         gc.clear();
     }
 
-    @Test
+    //@Test
+    @Disabled
     public void testGetFirstNextLast() throws Exception {
 
         ServicePoint sc = new ServicePoint();

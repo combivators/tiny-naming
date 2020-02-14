@@ -18,7 +18,9 @@ public class ObserverContext implements Consumer<Message>, Predicate<Message> {
     public ObserverContext(String endpoint) {
         setPoint(endpoint);
     }
-
+    public String getPoint() {
+        return endpoint;
+    }
     public void setPoint(String endpoint) {
         this.endpoint = endpoint;
         ServicePoint point = ServicePoint.valueOf(endpoint);

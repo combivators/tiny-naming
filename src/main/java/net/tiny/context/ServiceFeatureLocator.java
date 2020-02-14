@@ -5,10 +5,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Resource;
+
 import net.tiny.service.ServiceContext;
 
 public class ServiceFeatureLocator {
 
+    @Resource
     private ServiceContext serviceContext;
     private List<String> features = new ArrayList<String>();
     private Map<ServiceType, ServiceFeature> map = null;

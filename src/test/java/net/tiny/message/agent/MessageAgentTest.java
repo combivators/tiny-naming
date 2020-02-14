@@ -4,12 +4,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.List;
 import java.util.concurrent.Future;
 
 import org.junit.jupiter.api.Test;
 
 import net.tiny.boot.ApplicationContext;
 import net.tiny.boot.Main;
+import net.tiny.config.JsonParser;
 import net.tiny.context.RestWebServiceLocator;
 import net.tiny.messae.api.Message;
 import net.tiny.messae.api.MessageConsumer;
@@ -40,8 +42,9 @@ public class MessageAgentTest {
         doRegisterConsumers();
         doPushMessages();
 
-        doRemoveClear();
+        doGetConsumers();
 
+        doRemoveClear();
         doPushMessages();
 
         // Access Server Controller
@@ -65,7 +68,7 @@ public class MessageAgentTest {
 
     void doAccessTestConsumers() throws Exception {
         final RestWebServiceLocator locator = new RestWebServiceLocator();
-        String endpoint = "http://localhost:8080/v1/api/tc1/do";
+        String endpoint = "http://localhost:8080/api/v1/tc1/do";
         MessageConsumer consumer = locator.lookup(endpoint, MessageConsumer.class);
         assertNotNull(consumer);
 
@@ -74,7 +77,7 @@ public class MessageAgentTest {
         msg.setSource(endpoint);
         consumer.accept(msg);
 
-        endpoint = "http://localhost:8080/v1/api/tc2/do";
+        endpoint = "http://localhost:8080/api/v1/tc2/do";
         consumer = locator.lookup(endpoint, MessageConsumer.class);
         assertNotNull(consumer);
 
@@ -86,11 +89,11 @@ public class MessageAgentTest {
 
     void doRegisterConsumers() throws Exception {
         final RestWebServiceLocator locator = new RestWebServiceLocator();
-        String endpoint = "http://localhost:8080/v1/api/msg";
+        String endpoint = "http://localhost:8080/api/v1/msg";
 
         MessageService bus = locator.lookup(endpoint, MessageService.class);
         assertNotNull(bus);
-        String sp = "http://localhost:8080/v1/api/tc2/do";
+        String sp = "http://localhost:8080/api/v1/tc2/do";
         Message message = new Message();
         message.setChannel("ch1");
         message.setSource(sp);
@@ -102,9 +105,21 @@ public class MessageAgentTest {
         bus.register("ch2", BUS_TOKEN, message);
     }
 
+    void doGetConsumers() throws Exception {
+        final RestWebServiceLocator locator = new RestWebServiceLocator();
+        String endpoint = "http://localhost:8080/api/v1/msg";
+
+        MessageService bus = locator.lookup(endpoint, MessageService.class);
+        assertNotNull(bus);
+        List<String> consumers = bus.consumers("ch1", BUS_TOKEN);
+        assertEquals(2, consumers.size());
+        System.out.println("Consumers(ch1) : ");
+        consumers.forEach(c -> System.out.println(c));
+    }
+
     void doPushMessages() throws Exception {
         final RestWebServiceLocator locator = new RestWebServiceLocator();
-        String endpoint = "http://localhost:8080/v1/api/msg";
+        String endpoint = "http://localhost:8080/api/v1/msg";
 
         MessageService bus = locator.lookup(endpoint, MessageService.class);
         String channel = "ch1";
@@ -130,12 +145,12 @@ public class MessageAgentTest {
 
     void doRemoveClear() throws Exception {
         final RestWebServiceLocator locator = new RestWebServiceLocator();
-        String endpoint = "http://localhost:8080/v1/api/msg";
+        String endpoint = "http://localhost:8080/api/v1/msg";
 
         MessageService bus = locator.lookup(endpoint, MessageService.class);
-        assertNotNull(bus);
+        assertNotNull(bus);// Is a proxy
 
-        String sp = "http://localhost:8080/v1/api/tc2/do";
+        String sp = "http://localhost:8080/api/v1/tc2/do";
         Message message = new Message();
         message.setSource(sp);
         bus.remove("ch1", BUS_TOKEN, message);

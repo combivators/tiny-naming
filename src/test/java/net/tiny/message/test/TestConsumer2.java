@@ -12,7 +12,7 @@ import net.tiny.config.JsonParser;
 import net.tiny.messae.api.Message;
 import net.tiny.messae.api.MessageConsumer;
 
-@Path("/v1/api/tc2")
+@Path("/api/v1/tc2")
 public class TestConsumer2 implements MessageConsumer {
 
     private static final Logger LOGGER = Logger.getLogger(TestConsumer2.class.getName());

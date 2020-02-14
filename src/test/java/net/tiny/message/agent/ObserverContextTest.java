@@ -10,8 +10,8 @@ public class ObserverContextTest {
 
     @Test
     public void testCompare() throws Exception {
-        String sp1 = "http://192.168.1.100:8080/v1/api/msg";
-        String sp2 = "http://192.168.1.100:8080/v1/api/msg";
+        String sp1 = "http://192.168.1.100:8080/api/v1/msg";
+        String sp2 = "http://192.168.1.100:8080/api/v1/msg";
 
 
         Message msg1 = new Message();
